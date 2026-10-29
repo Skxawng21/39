@@ -95,6 +95,42 @@ app.post('/students', async (req, res) => {
     }
 });
 
+app.put('/students/:id', async (req, res) => {
+    const id = Number(req.params.id);
+    const { full_name, group_id } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ error: 'Invalid ID' });
+    }
+    if (!full_name || typeof full_name !== 'string' || full_name.trim().length === 0) {
+        return res.status(400).json({ error: 'full_name is required and must be a non-empty string' });
+    }
+    if (!group_id || !Number.isInteger(group_id) || group_id <= 0) {
+        return res.status(400).json({ error: 'group_id is required and must be a positive integer' });
+    }
+
+    try {
+        const [found] = await pool.query('SELECT id FROM students WHERE id = ?', [id]);
+        if (found.length === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+
+        await pool.query(
+            'UPDATE students SET full_name = ?, group_id = ? WHERE id = ?',
+            [full_name.trim(), group_id, id]
+        );
+
+        const [updated] = await pool.query('SELECT * FROM students WHERE id = ?', [id]);
+        res.json(updated[0]);
+    } catch (err) {
+        console.error(err);
+        if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+            return res.status(400).json({ error: 'Group with this ID does not exist' });
+        }
+        res.status(500).json({ error: 'Failed to update student' });
+    }
+});
+
 
 
 app.listen(PORT, () => {
