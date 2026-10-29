@@ -131,7 +131,26 @@ app.put('/students/:id', async (req, res) => {
     }
 });
 
+app.delete('/students/:id', async (req, res) => {
+    const id = Number(req.params.id);
 
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    try {
+        const [result] = await pool.query('DELETE FROM students WHERE id = ?', [id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        
+        res.status(204).send(); 
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to delete student' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
